@@ -30,7 +30,7 @@ const (
 )
 
 const (
-	ROOT_SERVICE_NAME = "-" // not implemented
+	ROOT_SERVICE_NAME = "root"
 )
 
 var (
