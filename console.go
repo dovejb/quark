@@ -23,6 +23,14 @@ type Console struct {
 	quark uintptr
 }
 
+func NewConsole(w http.ResponseWriter, r *http.Request, body []byte) *Console {
+	return &Console{
+		w:    w,
+		r:    r,
+		body: body,
+	}
+}
+
 func (c Console) Halt(status int, e interface{}) {
 	if e != nil {
 		marshal := json.Marshal

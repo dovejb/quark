@@ -107,6 +107,8 @@ func (s root) Full_Parameters_pathv_type_TryIt(pathv string, typ int, req struct
 		Air        string
 	}
 }) (rsp []User) {
+	fmt.Println(s.Body())
+	fmt.Println(quark.Js(req))
 	return
 }
 
