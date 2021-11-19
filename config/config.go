@@ -12,7 +12,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Configuration interface {
+type Configuration struct {
+	template propertyTemplate
+}
+
+func (c *Configuration) Load(filename string) error {
+	tmpl, e := buildPropertyTemplateFromFile(filename)
+	if e != nil {
+		return e
+	}
+	c.template = *tmpl
+	return nil
+}
+
+func (c Configuration) Extract(v interface{}) error {
+	return c.template.ExtractTo(v)
 }
 
 type property struct {

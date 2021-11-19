@@ -63,3 +63,18 @@ func TestExtractWithoutArray(t *testing.T) {
 	}
 	t.Log(util.Js(conf))
 }
+
+func TestConfiguration(t *testing.T) {
+	var c Configuration
+	if e := c.Load("config.yaml"); e != nil {
+		t.Errorf("Load config fail %v", e)
+	}
+	var config struct {
+		Hello string
+		World int
+	}
+	if e := c.Extract(&config); e != nil {
+		t.Errorf("Extract fail %v", e)
+	}
+	t.Log(config)
+}
