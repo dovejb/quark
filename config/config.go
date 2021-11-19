@@ -1,4 +1,4 @@
-package quark
+package config
 
 import (
 	"fmt"
