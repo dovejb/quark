@@ -66,7 +66,7 @@ func TestExtractWithoutArray(t *testing.T) {
 
 func TestConfiguration(t *testing.T) {
 	var c Configuration
-	if e := c.Load("config.yaml"); e != nil {
+	if e := c.LoadTemplate("config.yaml"); e != nil {
 		t.Errorf("Load config fail %v", e)
 	}
 	var config struct {
@@ -77,4 +77,17 @@ func TestConfiguration(t *testing.T) {
 		t.Errorf("Extract fail %v", e)
 	}
 	t.Log(config)
+}
+
+func TestConfigurationWithEnv(t *testing.T) {
+	var c struct {
+		Host  string
+		Value int
+		Data  float64
+	}
+	cf := Configuration{}
+	if e := cf.Load("config.yaml", &c); e != nil {
+		t.Fatal(e)
+	}
+	t.Log(c)
 }

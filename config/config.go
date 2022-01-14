@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/dovejb/quark/util"
@@ -16,12 +17,30 @@ type Configuration struct {
 	template propertyTemplate
 }
 
-func (c *Configuration) Load(filename string) error {
+func (c *Configuration) Load(tmplFile string, cfgObj interface{}) error {
+	if e := c.LoadTemplate(tmplFile); e != nil {
+		return e
+	}
+	if e := c.LoadEnvVars(); e != nil {
+		return e
+	}
+	if e := c.Extract(cfgObj); e != nil {
+		return e
+	}
+	return nil
+}
+
+func (c *Configuration) LoadTemplate(filename string) error {
 	tmpl, e := buildPropertyTemplateFromFile(filename)
 	if e != nil {
 		return e
 	}
 	c.template = *tmpl
+	return nil
+}
+
+func (c Configuration) LoadEnvVars() error {
+	c.template.loadEnvVars()
 	return nil
 }
 
@@ -61,12 +80,32 @@ func (p property) extract_value(value reflect.Value) error {
 }
 
 func (p property) extract_env_value(value reflect.Value) error {
+	fmt.Println("in extract_env_value", p.path, p.hasEnvValue, p.envValue)
+	if !p.hasEnvValue {
+		return nil
+	}
 	kind := value.Type().Kind()
 	switch {
 	case reflect.Int <= kind && kind <= reflect.Int64:
+		i, e := strconv.ParseInt(p.envValue, 10, 64)
+		if e != nil {
+			return fmt.Errorf("invalid env value(%s) as int, %v", p.envValue, e)
+		}
+		value.SetInt(i)
 	case reflect.Uint <= kind && kind <= reflect.Uintptr:
+		u, e := strconv.ParseUint(p.envValue, 10, 64)
+		if e != nil {
+			return fmt.Errorf("invalid env value(%s) as uint, %v", p.envValue, e)
+		}
+		value.SetUint(u)
 	case reflect.Float32 == kind || reflect.Float64 == kind:
+		f, e := strconv.ParseFloat(p.envValue, 64)
+		if e != nil {
+			return fmt.Errorf("invalid env value(%s) as float, %v", p.envValue, e)
+		}
+		value.SetFloat(f)
 	case reflect.String == kind:
+		value.SetString(p.envValue)
 	case reflect.Slice == kind || reflect.Array == kind: //TODO
 		return fmt.Errorf("slice or array is not supported in env vars extraction now")
 	default:
@@ -130,7 +169,7 @@ func (p *propertyTemplate) extract_to(x reflect.Value, ps []property, trie util.
 		} else { // property exists
 			prop := ps[*pos]
 			if e := prop.extract_value(fv); e != nil {
-				return fmt.Errorf("propert[%s.%s] extract value fail, value is [%v] but receiver type is [%v], %v", strings.Join(prefix, "_"), strings.Join(fp, "_"), prop.Value(), ft.Type, e)
+				return fmt.Errorf("property[%s.%s] extract value fail, value is [%v] but receiver type is [%v], %v", strings.Join(prefix, "_"), strings.Join(fp, "_"), prop.Value(), ft.Type, e)
 			}
 		}
 	}
@@ -194,7 +233,7 @@ func buildTemplate(tmpl *propertyTemplate, m map[string]interface{}, prefix []st
 				continue
 			}
 			tmpl.items = append(tmpl.items, property{
-				path:      prefix,
+				path:      copySlice(prefix),
 				repeated:  true,
 				fileValue: v,
 			})
@@ -205,7 +244,7 @@ func buildTemplate(tmpl *propertyTemplate, m map[string]interface{}, prefix []st
 				continue
 			}
 			tmpl.items = append(tmpl.items, property{
-				path:      prefix,
+				path:      copySlice(prefix),
 				fileValue: v,
 			})
 			tmpl.trie.Add(prefix, len(tmpl.items)-1)
@@ -223,4 +262,10 @@ func standardSplit(s string) []string {
 		}
 		return false
 	})
+}
+
+func copySlice(s []string) []string {
+	b := make([]string, len(s))
+	copy(b, s)
+	return b
 }
