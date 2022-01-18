@@ -112,6 +112,11 @@ func (s root) Full_Parameters_pathv_type_TryIt(pathv string, typ int, req struct
 	return
 }
 
+func (s root) NoRequestButWithBody() []byte {
+	fmt.Println(s.Body())
+	return s.Body()
+}
+
 func main() {
 	q.RegisterService(root{})
 	fmt.Println(quark.Js(q.SwaggerSpec()))

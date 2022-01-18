@@ -114,8 +114,6 @@ func (q *Quark) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
-	r.ParseForm()
-	defer r.Body.Close()
 	path := r.URL.Path
 	if path != "" && path[0] == '/' {
 		path = path[1:]
@@ -348,7 +346,14 @@ func (a *Api) SwaggerOperations() *spec.Operation {
 }
 
 func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
-	body, _ := ioutil.ReadAll(r.Body)
+	body, e := ioutil.ReadAll(r.Body)
+	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("read request body fail, %v", e)))
+		return
+	}
+	r.Body.Close()
+	r.ParseForm()
 	objV := reflect.New(a.ReflectMethod.Type.In(0)).Elem()
 	if objV.Kind() == reflect.Struct && objV.NumField() > 0 {
 		if consoleValue := objV.Field(0); consoleValue.Type() == consoleType {
