@@ -84,6 +84,7 @@ func TestConfigurationWithEnv(t *testing.T) {
 		Host  string
 		Value int
 		Data  float64
+		Yes   bool
 	}
 	cf := Configuration{}
 	if e := cf.Load("config.yaml", &c); e != nil {

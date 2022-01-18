@@ -108,6 +108,12 @@ func (p property) extract_env_value(value reflect.Value) error {
 		value.SetString(p.envValue)
 	case reflect.Slice == kind || reflect.Array == kind: //TODO
 		return fmt.Errorf("slice or array is not supported in env vars extraction now")
+	case reflect.Bool == kind:
+		if strings.ToLower(p.envValue) == "true" {
+			value.SetBool(true)
+		} else {
+			value.SetBool(false)
+		}
 	default:
 		return fmt.Errorf("unsupported property type kind[%v]", kind)
 	}
