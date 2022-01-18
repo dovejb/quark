@@ -33,13 +33,20 @@ func NewConsole(w http.ResponseWriter, r *http.Request, body []byte) *Console {
 
 func (c Console) Halt(status int, e interface{}) {
 	if e != nil {
-		marshal := json.Marshal
-		if c.quark != 0 {
-			marshal = (*Quark)(unsafe.Pointer(c.quark)).Marshal
-		}
-		b, err := marshal(e)
-		if err != nil {
-			panic(fmt.Errorf("Halt marshal error, %v", err))
+		var b []byte
+		switch v := e.(type) {
+		case error:
+			b = []byte(fmt.Sprintf("%v", v))
+		default:
+			marshal := json.Marshal
+			if c.quark != 0 {
+				marshal = (*Quark)(unsafe.Pointer(c.quark)).Marshal
+			}
+			var err error
+			b, err = marshal(e)
+			if err != nil {
+				panic(fmt.Errorf("Halt marshal error, %v", err))
+			}
 		}
 		panic(haltPanic{status, b})
 	}
