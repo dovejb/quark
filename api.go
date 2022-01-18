@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 	"unicode"
-	"unsafe"
 
 	"github.com/dovejb/quark/types"
 	"github.com/dovejb/quark/util"
@@ -157,7 +156,7 @@ type Service struct {
 	ServiceType   reflect.Type
 	Apis          []Api
 	atrie         util.Trie // path format with {%} mark; there's a final tire indicating method, by :GET, :POST or : for ANY
-	quarkInstance uintptr
+	quarkInstance *Quark
 }
 
 func (s Service) DumpPaths() {
@@ -202,7 +201,7 @@ func (s *Service) Route(w http.ResponseWriter, r *http.Request, pathElems []stri
 }
 
 func (s *Service) Quark() *Quark {
-	return (*Quark)(unsafe.Pointer(s.quarkInstance))
+	return s.quarkInstance
 }
 
 type Api struct {
@@ -214,7 +213,7 @@ type Api struct {
 	Response        reflect.Type
 	ReflectMethod   reflect.Method
 	PathVars        []util.PathVar // key: path element pos, value: i/s/f.{varname}
-	serviceInstance uintptr
+	serviceInstance *Service
 }
 
 func (a *Api) SwaggerPathItem() *spec.PathItem {
@@ -412,14 +411,14 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 }
 
 func (api *Api) Service() *Service {
-	return (*Service)(unsafe.Pointer(api.serviceInstance))
+	return api.serviceInstance
 }
 
 func (q *Quark) newService(t reflect.Type) (s *Service) {
 	s = new(Service)
 	s.Name = t.Name()
 	s.ServiceType = t
-	s.quarkInstance = uintptr(unsafe.Pointer(q))
+	s.quarkInstance = q
 	s.atrie = util.NewTrie()
 	if t.Kind() != reflect.Struct {
 		panic(fmt.Errorf("only allow struct type, but receive [%s-%s]", t.Name(), t.Kind()))
@@ -443,7 +442,7 @@ func (q *Quark) newService(t reflect.Type) (s *Service) {
 func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 	name := method.Name
 	api = new(Api)
-	api.serviceInstance = uintptr(unsafe.Pointer(s))
+	api.serviceInstance = s
 	api.ReflectMethod = method
 	if firstUnderlinePos := strings.Index(name, "_"); firstUnderlinePos >= 0 {
 		if methodCandidate := name[:firstUnderlinePos]; validMethods[methodCandidate] {
