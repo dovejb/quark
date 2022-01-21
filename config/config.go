@@ -80,7 +80,6 @@ func (p property) extract_value(value reflect.Value) error {
 }
 
 func (p property) extract_env_value(value reflect.Value) error {
-	fmt.Println("in extract_env_value", p.path, p.hasEnvValue, p.envValue)
 	if !p.hasEnvValue {
 		return nil
 	}
