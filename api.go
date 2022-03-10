@@ -416,7 +416,7 @@ func (api *Api) Service() *Service {
 
 func (q *Quark) newService(t reflect.Type) (s *Service) {
 	s = new(Service)
-	s.Name = t.Name()
+	s.Name = strings.ToLower(t.Name())
 	s.ServiceType = t
 	s.quarkInstance = q
 	s.atrie = util.NewTrie()
