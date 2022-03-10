@@ -1,6 +1,7 @@
 package config
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/dovejb/quark/util"
@@ -91,4 +92,30 @@ func TestConfigurationWithEnv(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Log(c)
+}
+
+func TestMapFromStruct(t *testing.T) {
+	x := struct {
+		HelloWorldServiceAddr string
+		HelloWorldServicePort int
+		ExtraInfo             struct {
+			ConfigPath string
+		}
+	}{}
+	m := mapFromStructType(reflect.TypeOf(x))
+	t.Log(util.Js(m))
+}
+
+func TestDirectLoad(t *testing.T) {
+	x := struct {
+		HelloWorldServiceAddr string
+		HelloWorldServicePort int
+		ExtraInfo             struct {
+			ConfigPath string
+		}
+	}{}
+	if e := Load(&x); e != nil {
+		t.Error(e)
+	}
+	t.Log(util.Js(x))
 }

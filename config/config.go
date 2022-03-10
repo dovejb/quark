@@ -17,6 +17,22 @@ type Configuration struct {
 	template propertyTemplate
 }
 
+func Load(cfgObj interface{}) error {
+	t := reflect.TypeOf(cfgObj)
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("Load only accept pointer of struct")
+	}
+	tmpl, e := buildPropertyTemplateFromStruct(t.Elem())
+	if e != nil {
+		return e
+	}
+	c := Configuration{*tmpl}
+	if e = c.LoadEnvVars(); e != nil {
+		return e
+	}
+	return c.Extract(cfgObj)
+}
+
 func (c *Configuration) Load(tmplFile string, cfgObj interface{}) error {
 	if e := c.LoadTemplate(tmplFile); e != nil {
 		return e
@@ -198,6 +214,36 @@ func (p *propertyTemplate) loadEnvVars() {
 type propertyTemplate struct {
 	items []property
 	trie  util.Trie
+}
+
+func buildPropertyTemplateFromStruct(t reflect.Type) (*propertyTemplate, error) {
+	if t == nil || t.Kind() != reflect.Struct {
+		panic("buildPropertyTemplateFromStruct only allow Struct kind argument!")
+	}
+	tmpl := &propertyTemplate{
+		items: make([]property, 0, 8),
+		trie:  util.NewTrie(),
+	}
+	m := mapFromStructType(t)
+	if e := buildTemplate(tmpl, m, make([]string, 0)); e != nil {
+		return nil, e
+	}
+	return tmpl, nil
+}
+
+func mapFromStructType(t reflect.Type) map[string]interface{} {
+	m := make(map[string]interface{})
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		fp := util.PascalSplit(f.Name)
+		k := strings.Join(fp, "-")
+		if f.Type.Kind() == reflect.Struct {
+			m[k] = mapFromStructType(f.Type)
+		} else {
+			m[k] = reflect.Zero(f.Type).Interface()
+		}
+	}
+	return m
 }
 
 func buildPropertyTemplateFromFile(yaml_path string) (*propertyTemplate, error) {
