@@ -51,6 +51,7 @@ type Quark struct {
 	Services  []Service
 	smap      map[string]int
 	swagger   *spec.Swagger
+	option    *Option
 }
 
 func (q *Quark) SwaggerSpec() *spec.Swagger {
@@ -120,11 +121,25 @@ func (q *Quark) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pathElems := strings.Split(path, "/")
 	//firstly, find handler by leading service name
 	for len(pathElems) > 0 {
-		serviceIndex, ok := q.smap[pathElems[0]]
+		pe := pathElems
+		if k := len(q.option.PathPrefix); k > 0 {
+			if len(pe) < k {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			for i := 0; i < k; i++ {
+				if q.option.PathPrefix[i] != pe[i] {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+			}
+			pe = pe[k:]
+		}
+		serviceIndex, ok := q.smap[pe[0]]
 		if !ok {
 			break
 		}
-		if q.Services[serviceIndex].Route(w, r, pathElems[1:]) {
+		if q.Services[serviceIndex].Route(w, r, pe[1:]) {
 			return
 		}
 		break
@@ -353,10 +368,22 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 	}
 	r.Body.Close()
 	r.ParseForm()
+	var console = Console{
+		w:     w,
+		r:     r,
+		body:  body,
+		quark: a.Service().Quark(),
+	}
 	objV := reflect.New(a.ReflectMethod.Type.In(0)).Elem()
 	if objV.Kind() == reflect.Struct && objV.NumField() > 0 {
 		if consoleValue := objV.Field(0); consoleValue.Type() == consoleType {
-			consoleValue.Set(reflect.ValueOf(NewConsole(w, r, body)).Elem())
+			consoleValue.Set(reflect.ValueOf(console))
+		}
+	}
+	if authFunc := a.Service().Quark().option.Authenticate; authFunc != nil {
+		if !authFunc(&console) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
 		}
 	}
 	in := []reflect.Value{objV}
@@ -416,7 +443,7 @@ func (api *Api) Service() *Service {
 
 func (q *Quark) newService(t reflect.Type) (s *Service) {
 	s = new(Service)
-	s.Name = strings.ToLower(t.Name())
+	s.Name = t.Name()
 	s.ServiceType = t
 	s.quarkInstance = q
 	s.atrie = util.NewTrie()

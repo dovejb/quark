@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"reflect"
 	"sync"
-	"unsafe"
 )
 
 var (
@@ -20,7 +19,7 @@ type Console struct {
 	w     http.ResponseWriter
 	r     *http.Request
 	body  []byte
-	quark uintptr
+	quark *Quark
 }
 
 func NewConsole(w http.ResponseWriter, r *http.Request, body []byte) *Console {
@@ -39,8 +38,8 @@ func (c Console) Halt(status int, e interface{}) {
 			b = []byte(fmt.Sprintf("%v", v))
 		default:
 			marshal := json.Marshal
-			if c.quark != 0 {
-				marshal = (*Quark)(unsafe.Pointer(c.quark)).Marshal
+			if c.quark != nil {
+				marshal = c.quark.Marshal
 			}
 			var err error
 			b, err = marshal(e)

@@ -13,15 +13,15 @@ var (
 	q = quark.NewQuark()
 )
 
-type root struct {
+type example struct {
 	quark.Console
 }
 
-func (s root) Vehicle_Vin() (rsp string) {
+func (s example) Vehicle_Vin() (rsp string) {
 	return "Vehicle_Vin"
 }
 
-func (s root) Vehicle_vins(vin string, params struct {
+func (s example) Vehicle_vins(vin string, params struct {
 	Name string
 }) (rsp string) {
 	return fmt.Sprintf("Vehicle_vin as string, %s", vin)
@@ -43,10 +43,10 @@ type User struct {
 	Index int
 }
 
-func (s root) Users() (rsp []User) {
+func (s example) Users() (rsp []User) {
 	return
 }
-func (s root) GET_Vehicle_groupId_vin(groupId int, vin string) (rsp struct {
+func (s example) GET_Vehicle_groupId_vin(groupId int, vin string) (rsp struct {
 	Vin   string
 	Name  string
 	Admin string
@@ -55,7 +55,7 @@ func (s root) GET_Vehicle_groupId_vin(groupId int, vin string) (rsp struct {
 	return
 }
 
-func (s root) PATCH_Vehicle_groupId_vin(groupId int, vin string, req struct {
+func (s example) PATCH_Vehicle_groupId_vin(groupId int, vin string, req struct {
 	Name  string
 	Admin string
 }) {
@@ -63,11 +63,11 @@ func (s root) PATCH_Vehicle_groupId_vin(groupId int, vin string, req struct {
 	return
 }
 
-func (s root) Hello_World() string {
+func (s example) Hello_World() string {
 	return "hello world!"
 }
 
-func (s root) JsonResponse() (rsp struct {
+func (s example) JsonResponse() (rsp struct {
 	Name      string
 	Corp      string
 	Education []struct {
@@ -88,15 +88,15 @@ func (s root) JsonResponse() (rsp struct {
 	return
 }
 
-func (s root) InternalServerError() {
+func (s example) InternalServerError() {
 	s.Halt(http.StatusInternalServerError, "internal_server_error")
 }
 
-func (s root) Panic() {
+func (s example) Panic() {
 	panic("baga")
 }
 
-func (s root) Full_Parameters_pathv_type_TryIt(pathv string, typ int, req struct {
+func (s example) Full_Parameters_pathv_type_TryIt(pathv string, typ int, req struct {
 	Value   types.URLInt
 	Price   types.URLNumber
 	Message types.URLString
@@ -112,13 +112,23 @@ func (s root) Full_Parameters_pathv_type_TryIt(pathv string, typ int, req struct
 	return
 }
 
-func (s root) NoRequestButWithBody() []byte {
+func (s example) NoRequestButWithBody() []byte {
 	fmt.Println(s.Body())
 	return s.Body()
 }
 
+func Authenticate(c *quark.Console) bool {
+	r := c.Request()
+	if r.Header.Get("Authorization") == "dovejb" {
+		return true
+	}
+	return false
+}
+
 func main() {
-	q.RegisterService(root{})
+	q.RegisterService(example{})
+	q.WithAuthenticate(Authenticate)
+	q.WithPathPrefix([]string{"open", "v1"})
 	fmt.Println(quark.Js(q.SwaggerSpec()))
 	for i := range q.Services {
 		log.Println(q.Services[i])
