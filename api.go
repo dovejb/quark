@@ -530,7 +530,6 @@ func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 	if mtype.NumOut() > 0 {
 		api.Response = mtype.Out(0)
 	}
-	api.QueryVars = make(map[string]int)
 	api.docMethod = api.Method
 	if api.docMethod == "" {
 		if api.Request != nil {
@@ -538,14 +537,22 @@ func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 				f := api.Request.Field(i)
 				if !IsUrlType(f.Type) {
 					api.docMethod = http.MethodPost
-				} else {
-					name := util.PascalToSnake(f.Name)
-					api.QueryVars[name] = i
 				}
 			}
 		}
 		if api.docMethod == "" {
 			api.docMethod = http.MethodGet
+		}
+	}
+
+	if api.Request != nil {
+		api.QueryVars = make(map[string]int)
+		for i := 0; i < api.Request.NumField(); i++ {
+			f := api.Request.Field(i)
+			if IsUrlType(f.Type) {
+				name := util.PascalToSnake(f.Name)
+				api.QueryVars[name] = i
+			}
 		}
 	}
 
