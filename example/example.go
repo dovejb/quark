@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/dovejb/quark"
-	"github.com/dovejb/quark/types"
 )
 
 var (
@@ -97,9 +96,9 @@ func (s example) Panic() {
 }
 
 func (s example) Full_Parameters_pathv_type_TryIt(pathv string, typ int, req struct {
-	Value   types.URLInt
-	Price   types.URLNumber
-	Message types.URLString
+	Value   quark.Int
+	Price   quark.Number
+	Message quark.String
 	Hello   string
 	World   struct {
 		Oceans     []string
@@ -127,7 +126,7 @@ func Authenticate(c *quark.Console) bool {
 
 func main() {
 	q.RegisterService(example{})
-	q.WithAuthenticate(Authenticate)
+	//q.WithAuthenticate(Authenticate)
 	q.WithPathPrefix([]string{"open", "v1"})
 	fmt.Println(quark.Js(q.SwaggerSpec()))
 	for i := range q.Services {

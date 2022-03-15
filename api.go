@@ -12,20 +12,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/dovejb/quark/types"
 	"github.com/dovejb/quark/util"
 	"github.com/go-openapi/spec"
-)
-
-type Kind uint
-
-const (
-	Invalid Kind = iota
-	Bool
-	Int
-	Float
-	Big
-	String
 )
 
 const (
@@ -228,6 +216,7 @@ type Api struct {
 	Response        reflect.Type
 	ReflectMethod   reflect.Method
 	PathVars        []util.PathVar // key: path element pos, value: i/s/f.{varname}
+	QueryVars       map[string]int // key: var name, value: pos in req struct
 	serviceInstance *Service
 }
 
@@ -291,13 +280,13 @@ func (a *Api) SwaggerOperations() *spec.Operation {
 			var typ string
 			var in string
 			switch dataType {
-			case types.URLIntType:
+			case IntType:
 				typ = "integer"
 				in = "query"
-			case types.URLNumberType:
+			case NumberType:
 				typ = "number"
 				in = "query"
-			case types.URLStringType:
+			case StringType:
 				typ = "string"
 				in = "query"
 			default: //body field
@@ -422,6 +411,37 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 				return
 			}
 		}
+		for k, pos := range a.QueryVars {
+			f := reqV.Elem().Field(pos)
+			vs := r.Form[k]
+			if len(vs) == 0 || (len(vs) == 1 && vs[0] == "") {
+				f.Set(reflect.Zero(f.Type()))
+			} else {
+				switch f.Type() {
+				case StringType:
+					f.SetString(vs[0])
+				case IntType:
+					i, e := strconv.ParseInt(vs[0], 10, 64)
+					if e != nil {
+						w.WriteHeader(http.StatusBadRequest)
+						w.Write([]byte(fmt.Sprintf("Failed to parse query parameter %s as int", k)))
+						return
+					}
+					f.SetInt(i)
+				case NumberType:
+					n, e := strconv.ParseFloat(vs[0], 64)
+					if e != nil {
+						w.WriteHeader(http.StatusBadRequest)
+						w.Write([]byte(fmt.Sprintf("Failed to parse query parameter %s as number", k)))
+						return
+					}
+					f.SetFloat(n)
+				default:
+					// impossible
+					// other types or slices are not supported yet, see newApi
+				}
+			}
+		}
 		in = append(in, reqV.Elem())
 	}
 	out := a.ReflectMethod.Func.Call(in)
@@ -510,13 +530,17 @@ func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 	if mtype.NumOut() > 0 {
 		api.Response = mtype.Out(0)
 	}
+	api.QueryVars = make(map[string]int)
 	api.docMethod = api.Method
 	if api.docMethod == "" {
 		if api.Request != nil {
 			for i := 0; i < api.Request.NumField(); i++ {
 				f := api.Request.Field(i)
-				if !types.IsUrlType(f.Type) {
+				if !IsUrlType(f.Type) {
 					api.docMethod = http.MethodPost
+				} else {
+					name := util.PascalToSnake(f.Name)
+					api.QueryVars[name] = i
 				}
 			}
 		}
@@ -582,9 +606,9 @@ type TypeAndFormat struct {
 var (
 	reservedStructTypes = map[reflect.Type]TypeAndFormat{
 		reflect.TypeOf(time.Time{}): {"string", "date-time"},
-		types.URLIntType:            {"integer", "int64"},
-		types.URLNumberType:         {"number", "double"},
-		types.URLStringType:         {"string", ""},
+		IntType:                     {"integer", "int64"},
+		NumberType:                  {"number", "double"},
+		StringType:                  {"string", ""},
 	}
 	intSchema = spec.Schema{
 		SchemaProps: spec.SchemaProps{
@@ -656,7 +680,7 @@ func (q *Quark) SwaggerSchemaFromStruct(t reflect.Type, omit_url_parameters bool
 	schema.Properties = make(spec.SchemaProperties)
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		if omit_url_parameters && types.IsUrlType(f.Type) {
+		if omit_url_parameters && IsUrlType(f.Type) {
 			continue
 		}
 		nullable := false
