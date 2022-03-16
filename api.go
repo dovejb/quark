@@ -363,16 +363,16 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 		body:  body,
 		quark: a.Service().Quark(),
 	}
-	objV := reflect.New(a.ReflectMethod.Type.In(0)).Elem()
-	if objV.Kind() == reflect.Struct && objV.NumField() > 0 {
-		if consoleValue := objV.Field(0); consoleValue.Type() == consoleType {
-			consoleValue.Set(reflect.ValueOf(console))
-		}
-	}
 	if authFunc := a.Service().Quark().option.Authenticate; authFunc != nil {
 		if !authFunc(&console) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
+		}
+	}
+	objV := reflect.New(a.ReflectMethod.Type.In(0)).Elem()
+	if objV.Kind() == reflect.Struct && objV.NumField() > 0 {
+		if consoleValue := objV.Field(0); consoleValue.Type() == consoleType {
+			consoleValue.Set(reflect.ValueOf(console))
 		}
 	}
 	in := []reflect.Value{objV}
