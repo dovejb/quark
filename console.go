@@ -16,10 +16,11 @@ var (
 )
 
 type Console struct {
-	w     http.ResponseWriter
-	r     *http.Request
-	body  []byte
-	quark *Quark
+	w       http.ResponseWriter
+	r       *http.Request
+	body    []byte
+	quark   *Quark
+	context interface{}
 }
 
 func NewConsole(w http.ResponseWriter, r *http.Request, body []byte) *Console {
@@ -103,4 +104,12 @@ func isConsoleMethod(m reflect.Method) bool {
 		}
 	}
 	return true
+}
+
+func (c *Console) SaveContext(a interface{}) {
+	c.context = a
+}
+
+func (c Console) Context() interface{} {
+	return c.context
 }
