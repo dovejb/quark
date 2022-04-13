@@ -212,6 +212,7 @@ type Api struct {
 	docMethod       string // no req or only Parameter type in req, then is GET,  or POST
 	Path            string
 	docPath         string
+	noBody          bool
 	Request         reflect.Type
 	Response        reflect.Type
 	ReflectMethod   reflect.Method
@@ -403,7 +404,7 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 	}
 	if a.Request != nil {
 		reqV := reflect.New(a.Request)
-		if len(body) > 0 {
+		if !a.noBody && len(body) > 0 {
 			e := a.Service().Quark().Unmarshal(body, reqV.Interface())
 			if e != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -545,6 +546,7 @@ func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 		}
 	}
 
+	api.noBody = true
 	if api.Request != nil {
 		api.QueryVars = make(map[string]int)
 		for i := 0; i < api.Request.NumField(); i++ {
@@ -552,6 +554,8 @@ func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 			if IsUrlType(f.Type) {
 				name := util.PascalToSnake(f.Name)
 				api.QueryVars[name] = i
+			} else {
+				api.noBody = false
 			}
 		}
 	}
