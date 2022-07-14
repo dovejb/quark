@@ -169,6 +169,9 @@ func (p *propertyTemplate) extract_to(x reflect.Value, ps []property, trie util.
 	for i := 0; i < x.NumField(); i++ {
 		fv := x.Field(i)
 		ft := x.Type().Field(i)
+		if !ft.IsExported() {
+			continue
+		}
 		fp := util.PascalSplit(ft.Name)
 		next, found := trie.Find(fp)
 		if !found {
@@ -235,6 +238,9 @@ func mapFromStructType(t reflect.Type) map[string]interface{} {
 	m := make(map[string]interface{})
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
+		if !f.IsExported() { //omit unexported fields
+			continue
+		}
 		fp := util.PascalSplit(f.Name)
 		k := strings.Join(fp, "-")
 		if f.Type.Kind() == reflect.Struct {
