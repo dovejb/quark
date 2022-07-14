@@ -235,6 +235,9 @@ func mapFromStructType(t reflect.Type) map[string]interface{} {
 	m := make(map[string]interface{})
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
+		if !f.IsExported() { //omit unexported fields
+			continue
+		}
 		fp := util.PascalSplit(f.Name)
 		k := strings.Join(fp, "-")
 		if f.Type.Kind() == reflect.Struct {
