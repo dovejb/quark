@@ -421,22 +421,35 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 				switch f.Type() {
 				case StringType:
 					f.SetString(vs[0])
-				case IntType:
+				case StringPointerType:
+					f.Set(reflect.New(f.Type()))
+					f.Elem().SetString(vs[0])
+				case IntType, IntPointerType:
 					i, e := strconv.ParseInt(vs[0], 10, 64)
 					if e != nil {
 						w.WriteHeader(http.StatusBadRequest)
 						w.Write([]byte(fmt.Sprintf("Failed to parse query parameter %s as int", k)))
 						return
 					}
-					f.SetInt(i)
-				case NumberType:
+					if f.Type() == IntType {
+						f.SetInt(i)
+					} else {
+						f.Set(reflect.New(f.Type()))
+						f.Elem().SetInt(i)
+					}
+				case NumberType, NumberPointerType:
 					n, e := strconv.ParseFloat(vs[0], 64)
 					if e != nil {
 						w.WriteHeader(http.StatusBadRequest)
 						w.Write([]byte(fmt.Sprintf("Failed to parse query parameter %s as number", k)))
 						return
 					}
-					f.SetFloat(n)
+					if f.Type() == IntType {
+						f.SetFloat(n)
+					} else {
+						f.Set(reflect.New(f.Type()))
+						f.Elem().SetFloat(n)
+					}
 				default:
 					// impossible
 					// other types or slices are not supported yet, see newApi

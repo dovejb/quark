@@ -21,11 +21,15 @@ func (n Number) V() float64 {
 }
 
 var (
-	StringType = reflect.TypeOf(String(""))
-	IntType    = reflect.TypeOf(Int(0))
-	NumberType = reflect.TypeOf(Number(0))
+	StringType        = reflect.TypeOf(String(""))
+	IntType           = reflect.TypeOf(Int(0))
+	NumberType        = reflect.TypeOf(Number(0))
+	StringPointerType = reflect.PointerTo(StringType)
+	IntPointerType    = reflect.PointerTo(IntType)
+	NumberPointerType = reflect.PointerTo(NumberType)
 )
 
 func IsUrlType(t reflect.Type) bool {
-	return t == StringType || t == IntType || t == NumberType
+	return t == StringType || t == IntType || t == NumberType ||
+		t == StringPointerType || t == IntPointerType || t == NumberPointerType
 }
