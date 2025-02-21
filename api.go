@@ -453,6 +453,8 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 			w.Write([]byte(e.Error()))
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
 	return
