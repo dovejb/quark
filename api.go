@@ -552,7 +552,7 @@ func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 		for i := 0; i < api.Request.NumField(); i++ {
 			f := api.Request.Field(i)
 			if IsUrlType(f.Type) {
-				name := util.PascalToSnake(f.Name)
+				name := QuarkTagOrJsonTagOrSnake(f)
 				api.QueryVars[name] = i
 			} else {
 				api.noBody = false
@@ -571,6 +571,24 @@ func (s *Service) newApi(method reflect.Method) (api *Api, e error) {
 	}
 
 	return
+}
+
+var cutset = " \t\n\r"
+
+func QuarkTagOrJsonTagOrSnake(f reflect.StructField) string {
+	if tag := strings.Trim(f.Tag.Get("quark"), cutset); tag != "" {
+		n := strings.Split(tag, ",")[0]
+		if n != "" {
+			return n
+		}
+	}
+	if tag := strings.Trim(f.Tag.Get("json"), cutset); tag != "" && tag != "-" {
+		n := strings.Split(tag, ",")[0]
+		if n != "" {
+			return n
+		}
+	}
+	return util.PascalToSnake(f.Name)
 }
 
 func PathElementChoices(elem string) (results []string) {
