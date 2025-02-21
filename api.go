@@ -422,7 +422,7 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 				case StringType:
 					f.SetString(vs[0])
 				case StringPointerType:
-					f.Set(reflect.New(f.Type()))
+					f.Set(reflect.New(StringType))
 					f.Elem().SetString(vs[0])
 				case IntType, IntPointerType:
 					i, e := strconv.ParseInt(vs[0], 10, 64)
@@ -434,7 +434,7 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 					if f.Type() == IntType {
 						f.SetInt(i)
 					} else {
-						f.Set(reflect.New(f.Type()))
+						f.Set(reflect.New(IntType))
 						f.Elem().SetInt(i)
 					}
 				case NumberType, NumberPointerType:
@@ -444,10 +444,10 @@ func (a *Api) Run(w http.ResponseWriter, r *http.Request, pathElems []string) {
 						w.Write([]byte(fmt.Sprintf("Failed to parse query parameter %s as number", k)))
 						return
 					}
-					if f.Type() == IntType {
+					if f.Type() == NumberType {
 						f.SetFloat(n)
 					} else {
-						f.Set(reflect.New(f.Type()))
+						f.Set(reflect.New(NumberType))
 						f.Elem().SetFloat(n)
 					}
 				default:
